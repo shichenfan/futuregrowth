@@ -1,0 +1,17 @@
+sys:1: DtypeWarning: Columns (2) have mixed types.Specify dtype option on import or set low_memory=False.
+
+Calculating performance measures...
+                           2018
+ACRES     7578.5
+TOD       16.5%, 37.4%     24% 36%
+DT        6.5%, 11.7%
+MU        19.8%
+RES DEN   7.53             7.4
+MF        40.0%            39%
+FARM AC   1854.9             38.2
+Redev%    9.7%
+Infill    50.0%            50%
+
+--- Script ran successfully! ---
+
+End time 2021-07-09 16:16:58.276753

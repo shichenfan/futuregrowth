@@ -1,0 +1,12 @@
+sys:1: DtypeWarning: Columns (2) have mixed types.Specify dtype option on import or set low_memory=False.
+
+--- DEVELOPMENT SCORE CALCULATION ---
+Start time 2021-07-09 16:16:36.778835
+
+--- YEAR 2024 ---
+
+Development table generated for year 2024
+
+--- Script ran successfully! ---
+
+End time 2021-07-09 16:16:41.158772
