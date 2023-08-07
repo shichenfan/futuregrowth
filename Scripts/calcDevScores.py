@@ -106,7 +106,7 @@ else:
     Parcels['IDX_MU'] = Parcels['MU']
     Parcels['IDX_SF'] = Parcels['HU_SF_P']
 
-    Parcels['BASE_SCORE'] = Parcels['IDX_Cons']*wtCons+Parcels['IDX_Infill']*wtInfill+Parcels['IDX_Den']*wtDensity+Parcels['IDX_VMT']*wtVMT+(0.01*(1-Parcels['Dist_Col']/10560).clip(0,1))
+    Parcels['BASE_SCORE'] = Parcels['IDX_Cons']*wtCons+Parcels['IDX_Infill']*wtInfill+Parcels['IDX_Den']*wtDensity+Parcels['IDX_VMT']*wtVMT
 
     Parcels.to_csv(os.path.join(outputDir,"parcels.csv"), index = False)
     print("Indexes calculated")

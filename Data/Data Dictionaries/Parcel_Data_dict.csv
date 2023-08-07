@@ -50,5 +50,5 @@ HU_SF,Existing single-family units
 HU_MF,Existing multifamily units
 HU_OTH,Existing mobile homes
 PLANNED,Flag designating whether parcel falls inside a planned land use area
-GW_IDX,"Groundwater recharge area index (1.0 for no recharge areas, 0.0 for most protected area)"
+GW_IDX,"Groundwater recharge area index (0.0 for no recharge areas, 1.0 for most protected area)"
 PPov,Areas of Persistent Poverty
