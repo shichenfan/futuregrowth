@@ -45,6 +45,7 @@ Base_MAZ = pd.read_csv(os.path.join(dataDir, "Base_MAZ_2019.csv"))
 maz_skims = Base_MAZ.filter(items=['MAZ','TAZ','SOI'])
 #maz_skims.set_index('MAZ',inplace=True)
 emp_array_maz = np.array(Base_MAZ['Base_EMP'])
+HU_array_maz = np.array(Base_MAZ['Base_HU'])
 
 #####Pankaj: update baseYear if targetYear is not 2025 and create variables for respective directory for skims update dataABM_dir to skim_Dir in the subsequent codes
 
@@ -72,7 +73,7 @@ bikeSkim_omx.close()
 maz_skims['IDX_Bike'] = 0.0
 maz_skims.loc[maz_skims['bike_skim']>0,'IDX_Bike'] = maz_skims[maz_skims['bike_skim']>0].bike_skim.rank(pct = True)
 #maz_skims['IDX_Bike'] = maz_skims.bike_skim.rank(pct = True)
-
+# need a mask for distance <= 5 miles (30 minuts by bike) 'DIST_BIKE' < = 5 (<double check the latest script is using DIST>)
 #maz_skims['IDX_Bike'] = 0.0
 #bike_max = maz_skims['bike_skim'].max()
 #bike_min = maz_skims['bike_skim'].min()
@@ -93,7 +94,9 @@ taz_skims = taz_skims.merge(Base_MAZ.groupby(['TAZ']).agg({'SOI':'first','Base_E
 #taz_skims.set_index('TAZ',inplace=True)
 taz_skims['SOI'].fillna("",inplace=True)
 taz_skims['Base_EMP'].fillna(0,inplace=True)
+taz_skims['Base_HU'].fillna(0,inplace=True)
 emp_array_taz = taz_skims['Base_EMP'].to_numpy()
+HU_array_taz = taz_skims['Base_HU'].to_numpy()
 
 # Calculate transit accessibility by TAZ
 taz_skims['transit_skim'] = 0.0
@@ -112,6 +115,7 @@ transitSkim_omx.close()
 
 # Calculate transit skim indexes
 taz_skims['IDX_Transit'] = 0.0
+# SF: Need a mask exclude where  sum('IVTT', 'WLK_P', 'WLK_A', 'WLK_X','IWAIT','XWAIT' ) < 60, total time of access to transit, wait time, time on transit < 60 minutes
 taz_skims.loc[taz_skims['transit_skim']>0,'IDX_Transit'] = taz_skims[taz_skims['transit_skim']>0].transit_skim.rank(pct = True)
 #taz_skims['IDX_Transit'] = taz_skims.transit_skim.rank(pct = True)
 
@@ -140,6 +144,7 @@ sovSkim_omx.close()
 # Calculate sov skim indexes
 taz_skims['IDX_SOV'] = 0.0
 taz_skims.loc[taz_skims['sov_skim']>0,'IDX_SOV'] = taz_skims[taz_skims['sov_skim']>0].sov_skim.rank(pct = True)
+# update to the latest version: mask * emp_array_taz * np.exp(-0.049601 * 'TIME_1Veh')
 #taz_skims['IDX_SOV'] = taz_skims.sov_skim.rank(pct = True)
 
 #taz_skims['IDX_SOV'] = 0.0
@@ -161,3 +166,4 @@ except:
 
 print('\r\n--- Script ran successfully! ---\r\n')
 print('End time '+str(datetime.now()))
+
