@@ -86,15 +86,27 @@ try:
 #### Old script end ####
 
 # Calculate bike skim indexes
-maz_skims['IDX_Bike'] = 0.0
-maz_skims.loc[maz_skims['bike_skim']>0,'IDX_Bike'] = maz_skims[maz_skims['bike_skim']>0].bike_skim.rank(pct = True)
-#maz_skims['IDX_Bike'] = maz_skims.bike_skim.rank(pct = True)
-# need a mask for distance <= 5 miles (30 minuts by bike) 'DIST_BIKE' < = 5 (<double check the latest script is using DIST>)
+logger.info("Calculating bike skim indexes")
+maz_skims['IDX_Bike'] = 0.0 
+valid_bike = maz_skims['bike_skim'] > 0
+maz_skims.loc[valid_bike, 'IDX_Bike'] = maz_skims[valid_bike]['bike_skim'].rank(pct=True)
+maz_skims['IDX_Bike_EMP'] = 0.0                                                                                   # for emp allocation scoring 
+valid_bike_EMP = maz_skims['bike_skim_EMP'] > 0                                                                   # for emp allocation scoring    
+maz_skims.loc[valid_bike_EMP, 'IDX_Bike_EMP'] = maz_skims[valid_bike_EMP]['bike_skim_EMP'].rank(pct=True)         # for emp allocation scoring 
+logger.debug(f"Bike skim range: min={maz_skims['bike_skim'].min()}, max={maz_skims['bike_skim'].max()}")  #
+
+return maz_skims
+#### Old script ###############       
 #maz_skims['IDX_Bike'] = 0.0
-#bike_max = maz_skims['bike_skim'].max()
-#bike_min = maz_skims['bike_skim'].min()
-#maz_skims['IDX_Bike'] = ((maz_skims['bike_skim']-bike_min)/(bike_max-bike_min))#.clip(0,1)
-#print("Bike skim range    >> ", bike_min, bike_max)
+#maz_skims.loc[maz_skims['bike_skim']>0,'IDX_Bike'] = maz_skims[maz_skims['bike_skim']>0].bike_skim.rank(pct = True)
+##maz_skims['IDX_Bike'] = maz_skims.bike_skim.rank(pct = True)
+## need a mask for distance <= 5 miles (30 minuts by bike) 'DIST_BIKE' < = 5 (<double check the latest script is using DIST>)
+##maz_skims['IDX_Bike'] = 0.0
+##bike_max = maz_skims['bike_skim'].max()
+##bike_min = maz_skims['bike_skim'].min()
+##maz_skims['IDX_Bike'] = ((maz_skims['bike_skim']-bike_min)/(bike_max-bike_min))#.clip(0,1)
+##print("Bike skim range    >> ", bike_min, bike_max)
+#### Old script ###############       
 
 # Export MAZ skims
 try:
@@ -115,22 +127,21 @@ emp_array_taz = taz_skims['Base_EMP'].to_numpy()
 HU_array_taz = taz_skims['Base_HU'].to_numpy()
 
 # Calculate transit accessibility by TAZ
-taz_skims['transit_skim'] = 0.0
-transitSkim_omx = omx.open_file(os.path.join(skim_Dir, "FC" + str(baseYear)[-2:] + "_BASE_SKM_PK_TWB.omx"))  # This should be updated to "last year" instead of "base year"
-transitSkims = transitSkim_omx['IVTT']  # In-vehicle travel time
-
-for i in taz_skims.index:
-    row = transitSkims[i]
-    mask = ma.masked_where(row>0, row).mask
-    skim_val =(mask*emp_array_taz/(row+.01)).sum()
-    taz_skims.at[i,'transit_skim'] = skim_val
-    #print(i,row,skim_val)
-
-del transitSkims
-transitSkim_omx.close()
-
-# Calculate transit skim indexes
-taz_skims['IDX_Transit'] = 0.0
+#### Old script begin#######
+#taz_skims['transit_skim'] = 0.0
+#transitSkim_omx = omx.open_file(os.path.join(skim_Dir, "FC" + str(baseYear)[-2:] + "_BASE_SKM_PK_TWB.omx"))  # This should be updated to "last year" instead of "base year"
+#transitSkims = transitSkim_omx['IVTT']  # In-vehicle travel time
+#
+#for i in taz_skims.index:
+#    row = transitSkims[i]
+#    mask = ma.masked_where(row>0, row).mask
+#    skim_val =(mask*emp_array_taz/(row+.01)).sum()
+#    taz_skims.at[i,'transit_skim'] = skim_val
+#    #print(i,row,skim_val)
+#
+#del transitSkims
+#transitSkim_omx.close()
+#### Old script end#######
 # SF: Need a mask exclude where  sum('IVTT', 'WLK_P', 'WLK_A', 'WLK_X','IWAIT','XWAIT' ) < 60, total time of access to transit, wait time, time on transit < 60 minutes
  # Calcualte transit accessibility
         try:
@@ -151,6 +162,16 @@ taz_skims['IDX_Transit'] = 0.0
             logger.error(f"Error processing transit skims: {str(e)}")
             raise
 
+# Calculate transit skim indexes
+logger.info("Calculating transit skim indexes")
+taz_skims['IDX_Transit'] = 0.0
+valid_transit = taz_skims['transit_skim'] > 0
+taz_skims.loc[valid_transit, 'IDX_Transit'] = taz_skims[valid_transit]['transit_skim'].rank(pct=True)
+taz_skims['IDX_Transit_EMP'] = 0.0                                                                                              # for emp allocation scoring 
+valid_transit_EMP = taz_skims['transit_skim_EMP'] > 0                                                                           # for emp allocation scoring 
+taz_skims.loc[valid_transit_EMP, 'IDX_Transit_EMP'] = taz_skims[valid_transit_EMP]['transit_skim_EMP'].rank(pct=True)           # for emp allocation scoring 
+logger.debug(f"Transit skim range: min={taz_skims['transit_skim'].min()}, max={taz_skims['transit_skim'].max()}")
+        
 #taz_skims.loc[taz_skims['transit_skim']>0,'IDX_Transit'] = taz_skims[taz_skims['transit_skim']>0].transit_skim.rank(pct = True)
 #taz_skims['IDX_Transit'] = taz_skims.transit_skim.rank(pct = True)
 
@@ -170,7 +191,7 @@ try:
                     row = sov_skims[i]
                     mask = ma.masked_where(row > 0, row).mask
                     skim_val = (mask * emp_array_taz * np.exp(-0.049601 * row)).sum()
-                    skim_val_EMP = (mask * HU_array_taz * np.exp(-0.049601 * row)).sum() # for emp allocation scoring 
+                    skim_val_EMP = (mask * HU_array_taz * np.exp(-0.049601 * row)).sum()        # for emp allocation scoring 
                     taz_skims.at[i, 'sov_skim'] = skim_val + emp_array_taz[i]
                     taz_skims.at[i, 'sov_skim_EMP'] = skim_val_EMP + HU_array_taz[i]            # for emp allocation scoring 
 
@@ -192,16 +213,28 @@ try:
 #sovSkim_omx.close()
 #### Old script end ####
 # Calculate sov skim indexes
+logger.info("Calculating SOV skim indexes")
 taz_skims['IDX_SOV'] = 0.0
-taz_skims.loc[taz_skims['sov_skim']>0,'IDX_SOV'] = taz_skims[taz_skims['sov_skim']>0].sov_skim.rank(pct = True)
-# update to the latest version: mask * emp_array_taz * np.exp(-0.049601 * 'TIME_1Veh')
-#taz_skims['IDX_SOV'] = taz_skims.sov_skim.rank(pct = True)
-
+valid_sov = taz_skims['sov_skim'] > 0
+taz_skims.loc[valid_sov, 'IDX_SOV'] = taz_skims[valid_sov]['sov_skim'].rank(pct=True)
+taz_skims['IDX_SOV_EMP'] = 0.0                                                                                    # for emp allocation scoring 
+valid_sov_EMP = taz_skims['sov_skim_EMP'] > 0                                                                     # for emp allocation scoring 
+taz_skims.loc[valid_sov_EMP, 'IDX_SOV_EMP'] = taz_skims[valid_sov_EMP]['sov_skim_EMP'].rank(pct=True)             # for emp allocation scoring 
+logger.debug(f"SOV skim range: min={taz_skims['sov_skim'].min()}, max={taz_skims['sov_skim'].max()}")
+        
+return taz_skims
+#### Old script ####
 #taz_skims['IDX_SOV'] = 0.0
-#sov_max = taz_skims['sov_skim'].max()
-#sov_min = taz_skims['sov_skim'].min()
-#taz_skims['IDX_SOV'] = ((taz_skims['sov_skim']-sov_min)/(sov_max-sov_min))#.clip(0,1)
-#print("SOV skim range    >> ", sov_min, sov_max)
+#taz_skims.loc[taz_skims['sov_skim']>0,'IDX_SOV'] = taz_skims[taz_skims['sov_skim']>0].sov_skim.rank(pct = True)
+## update to the latest version: mask * emp_array_taz * np.exp(-0.049601 * 'TIME_1Veh')
+##taz_skims['IDX_SOV'] = taz_skims.sov_skim.rank(pct = True)
+#
+##taz_skims['IDX_SOV'] = 0.0
+##sov_max = taz_skims['sov_skim'].max()
+##sov_min = taz_skims['sov_skim'].min()
+##taz_skims['IDX_SOV'] = ((taz_skims['sov_skim']-sov_min)/(sov_max-sov_min))#.clip(0,1)
+##print("SOV skim range    >> ", sov_min, sov_max)
+#### Old script ####
 
 # Export TAZ skims
 try:
@@ -216,5 +249,6 @@ except:
 
 print('\r\n--- Script ran successfully! ---\r\n')
 print('End time '+str(datetime.now()))
+
 
 
