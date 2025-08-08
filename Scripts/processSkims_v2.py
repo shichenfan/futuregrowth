@@ -57,17 +57,33 @@ else:
 
 # Calculate bike accessibility by MAZ
 maz_skims['bike_skim'] = 0.0
-bikeSkim_omx = omx.open_file(os.path.join(skim_Dir, "FC" + str(baseYear)[-2:] + "_BASE_MAZ_SKM_BIKE.omx"))  # This should be updated to "last year" instead of "base year"
-bikeSkims = bikeSkim_omx['DIST_BIKE']
-
-for i in maz_skims.index:
-    row = bikeSkims[i]
-    mask = ma.masked_where(row>0, row).mask
-    skim_val = (mask*emp_array_maz/(row+0.01)).sum()
-    maz_skims.at[i,'bike_skim'] = skim_val
-
-del bikeSkims
-bikeSkim_omx.close()
+try:
+            with omx.open_file(os.path.join(self.abm_dir, f"FC{str(self.base_year)[-2:]}_BASE_MAZ_SKM_BIKE.omx")) as bike_skim_omx:
+                bike_skims = bike_skim_omx['TIME_BIKE'] #['DIST_BIKE']
+                for i in maz_skims.index:
+                    row = bike_skims[i]
+                    mask = ma.masked_where(row <= 5, row).mask  # Distance <= 5 miles (`30 min by bike)
+                    mask1 = ma.masked_where(row > 0, row).mask
+                    skim_val = (mask1 * mask * emp_array_maz).sum()
+                    maz_skims.at[i, 'bike_skim'] = skim_val + emp_array_maz[i]     
+                    skim_val_EMP = (mask1 * mask * HU_array_maz).sum()                 # for emp allocation scoring 
+                    maz_skims.at[i, 'bike_skim_EMP'] = skim_val_EMP + HU_array_maz[i]   # for emp allocation scoring 
+        except Exception as e:
+            logger.error(f"Error processing bike skims: {str(e)}")
+            raise
+#### Old script start ####
+#bikeSkim_omx = omx.open_file(os.path.join(skim_Dir, "FC" + str(baseYear)[-2:] + "_BASE_MAZ_SKM_BIKE.omx"))  # This should be updated to "last year" instead of "base year"
+#bikeSkims = bikeSkim_omx['DIST_BIKE']
+#
+#for i in maz_skims.index:
+#    row = bikeSkims[i]
+#    mask = ma.masked_where(row>0, row).mask
+#    skim_val = (mask*emp_array_maz/(row+0.01)).sum()
+#    maz_skims.at[i,'bike_skim'] = skim_val
+#
+#del bikeSkims
+#bikeSkim_omx.close()
+#### Old script end ####
 
 # Calculate bike skim indexes
 maz_skims['IDX_Bike'] = 0.0
@@ -116,7 +132,26 @@ transitSkim_omx.close()
 # Calculate transit skim indexes
 taz_skims['IDX_Transit'] = 0.0
 # SF: Need a mask exclude where  sum('IVTT', 'WLK_P', 'WLK_A', 'WLK_X','IWAIT','XWAIT' ) < 60, total time of access to transit, wait time, time on transit < 60 minutes
-taz_skims.loc[taz_skims['transit_skim']>0,'IDX_Transit'] = taz_skims[taz_skims['transit_skim']>0].transit_skim.rank(pct = True)
+ # Calcualte transit accessibility
+        try:
+            with omx.open_file(os.path.join(self.abm_dir, f"FC{str(self.base_year)[-2:]}_BASE_SKM_PK_TWB.omx")) as transit_skim_omx:
+                for i in taz_skims.index:
+                    row = (
+                        transit_skim_omx['IVTT'][i] + transit_skim_omx['WLK_P'][i] +
+                        transit_skim_omx['WLK_A'][i] + transit_skim_omx['WLK_X'][i] +
+                        transit_skim_omx['IWAIT'][i] + transit_skim_omx['XWAIT'][i]
+                        )
+                    mask = ma.masked_where(row <= 60, row).mask # within 60 minutes
+                    mask1 = ma.masked_where(row > 0, row).mask
+                    skim_val = (mask * mask1 * emp_array_taz).sum()
+                    skim_val_EMP = (mask * mask1 * HU_array_taz).sum()     # for emp allocation scoring 
+                    taz_skims.at[i, 'transit_skim'] = skim_val
+                    taz_skims.at[i, 'transit_skim_EMP'] = skim_val_EMP     # for emp allocation scoring 
+        except Exception as e:
+            logger.error(f"Error processing transit skims: {str(e)}")
+            raise
+
+#taz_skims.loc[taz_skims['transit_skim']>0,'IDX_Transit'] = taz_skims[taz_skims['transit_skim']>0].transit_skim.rank(pct = True)
 #taz_skims['IDX_Transit'] = taz_skims.transit_skim.rank(pct = True)
 
 #taz_skims['IDX_Transit'] = 0.0
@@ -128,19 +163,34 @@ taz_skims.loc[taz_skims['transit_skim']>0,'IDX_Transit'] = taz_skims[taz_skims['
 
 # Calculate SOV accessibility by TAZ
 taz_skims['sov_skim'] = 0.0
-sovSkim_omx = omx.open_file(os.path.join(skim_Dir, "FC" + str(baseYear)[-2:] + "_BASE_SKM_PK_D1.omx"))  # This should be updated to "last year" instead of "base year"
-sovSkims = sovSkim_omx['GENTIME_1Veh']  # In-vehicle travel time
+try:
+            with omx.open_file(os.path.join(self.abm_dir, f"FC{str(self.base_year)[-2:]}_BASE_SKM_PM_D1.omx")) as sov_skim_omx: # FC{str(self.base_year)[-2:]}_BASE_SKM_PK_D1.omx
+                sov_skims = sov_skim_omx['TIME_1Veh']
+                for i in taz_skims.index:
+                    row = sov_skims[i]
+                    mask = ma.masked_where(row > 0, row).mask
+                    skim_val = (mask * emp_array_taz * np.exp(-0.049601 * row)).sum()
+                    skim_val_EMP = (mask * HU_array_taz * np.exp(-0.049601 * row)).sum() # for emp allocation scoring 
+                    taz_skims.at[i, 'sov_skim'] = skim_val + emp_array_taz[i]
+                    taz_skims.at[i, 'sov_skim_EMP'] = skim_val_EMP + HU_array_taz[i]            # for emp allocation scoring 
 
-for i in taz_skims.index:
-    row = sovSkims[i]
-    mask = ma.masked_where(row>0, row).mask
-    skim_val =(mask*emp_array_taz/(row+.01)).sum()
-    taz_skims.at[i,'sov_skim'] = skim_val
-    #print(i,row,skim_val)
-
-del sovSkims
-sovSkim_omx.close()
-
+        except Exception as e:
+            logger.error(f"Error processing SOV skims: {str(e)}")
+            raise
+#### Old script start ####
+#sovSkim_omx = omx.open_file(os.path.join(skim_Dir, "FC" + str(baseYear)[-2:] + "_BASE_SKM_PK_D1.omx"))  # This should be updated to "last year" instead of "base year"
+#sovSkims = sovSkim_omx['GENTIME_1Veh']  # In-vehicle travel time
+#
+#for i in taz_skims.index:
+#    row = sovSkims[i]
+#    mask = ma.masked_where(row>0, row).mask
+#    skim_val =(mask*emp_array_taz/(row+.01)).sum()
+#    taz_skims.at[i,'sov_skim'] = skim_val
+#    #print(i,row,skim_val)
+#
+#del sovSkims
+#sovSkim_omx.close()
+#### Old script end ####
 # Calculate sov skim indexes
 taz_skims['IDX_SOV'] = 0.0
 taz_skims.loc[taz_skims['sov_skim']>0,'IDX_SOV'] = taz_skims[taz_skims['sov_skim']>0].sov_skim.rank(pct = True)
@@ -166,4 +216,5 @@ except:
 
 print('\r\n--- Script ran successfully! ---\r\n')
 print('End time '+str(datetime.now()))
+
 
